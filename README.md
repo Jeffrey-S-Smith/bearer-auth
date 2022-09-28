@@ -30,3 +30,12 @@ UML Reference
 
 This should be the first thing you do when beginning work on a lab assignment.
 Draw the process/data flow of your application and map it to the code you will need to write or evaluate/fix.
+
+## Routing
+
+- Run "npm test" in the terminal to test routes.
+You can also test these routes in thunder client:
+- /signup
+- /signin
+- /users
+- /secret

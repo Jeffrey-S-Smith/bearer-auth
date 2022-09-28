@@ -1,45 +1,23 @@
 'use strict';
 
-const bcrypt = require('bcrypt');
+require('dotenv').config();
+const { Sequelize, DataTypes } = require('sequelize');
+const userSchema = require('./users.js');
 
-const userSchema = (sequelize, DataTypes) => {
-  const model = sequelize.define('User', {
-    username: { type: DataTypes.STRING, allowNull: false, unique: true },
-    password: { type: DataTypes.STRING, allowNull: false, },
-    token: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return jwt.sign({ username: this.username });
-      }
-    }
-  });
+const DATABASE_URL = process.env.NODE_ENV === 'test' ? 'sqlite::memory' : process.env.DATABASE_URL;
 
-  model.beforeCreate(async (user) => {
-    let hashedPass = bcrypt.hash(user.password, 10);
-    user.password = hashedPass;
-  });
+const DATABASE_CONFIG = process.env.NODE_ENV === 'production' ? {
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  },
+} : {};
 
-  // Basic AUTH: Validating strings (username, password) 
-  model.authenticateBasic = async function (username, password) {
-    const user = await this.findOne({ username })
-    const valid = await bcrypt.compare(password, user.password)
-    if (valid) { return user; }
-    throw new Error('Invalid User');
-  }
+const sequelize = new Sequelize(DATABASE_URL, DATABASE_CONFIG);
 
-  // Bearer AUTH: Validating a token
-  model.authenticateToken = async function (token) {
-    try {
-      const parsedToken = jwt.verify(token, process.env.SECRET);
-      const user = this.findOne({ username: parsedToken.username })
-      if (user) { return user; }
-      throw new Error("User Not Found");
-    } catch (e) {
-      throw new Error(e.message)
-    }
-  }
-
-  return model;
-}
-
-module.exports = userSchema;
+module.exports = {
+  db: sequelize,
+  users: userSchema(sequelize, DataTypes),
+};

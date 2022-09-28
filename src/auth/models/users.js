@@ -1,23 +1,57 @@
 'use strict';
 
-require('dotenv').config();
-const { Sequelize, DataTypes } = require('sequelize');
-const userSchema = require('./users.js');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const SECRET = process.env.SECRET || 'somethingsecret';
 
-const DATABASE_URL = process.env.NODE_ENV === 'test' ? 'sqlite::memory' : process.env.DATABASE_URL;
 
-const DATABASE_CONFIG = process.env.NODE_ENV === 'production' ? {
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    }
+const userSchema = (sequelize, DataTypes) => {
+  const model = sequelize.define('User', {
+    username: { type: DataTypes.STRING, allowNull: false, unique: true },
+    password: { type: DataTypes.STRING, allowNull: false, },
+    token: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return jwt.sign({ username: this.username },  SECRET);
+      }, 
+      set(payload) {
+      return jwt.sign(payload, API_SECRET)
+      },
+    },
+  });
+
+  model.beforeCreate(async (user) => {
+    let hashedPass = await bcrypt.hash(user.password, 10);
+    user.password = hashedPass;
+  });
+
+  // Basic AUTH: Validating strings (username, password) 
+  model.authenticateBasic = async function (username, password) {
+    try {
+    const user = await this.findOne({ where: { username : username }});
+    const valid = await bcrypt.compare(password, user.password);
+    if (valid) { return user; }
+    throw new Error('Invalid User');
   }
-} : {};
+    catch (e) {
+  throw new Error(e.message);
+}
+  }
 
-const sequelize = new Sequelize(DATABASE_URL, DATABASE_CONFIG);
+  // Bearer AUTH: Validating a token
+  model.authenticateToken = async function (token) {
+    try {
+      const parsedToken = jwt.verify(token, SECRET);
+      const user = this.findOne({ username: parsedToken.username });
+      if (user) { return user; }
+      throw new Error("User Not Found");
+    } catch (e) {
+      throw new Error(e.message);
+    }
+  };
 
-module.exports = {
-  db: sequelize,
-  users: userSchema(sequelize, DataTypes),
-};
+  return model;
+}
+
+
+module.exports = userSchema;
