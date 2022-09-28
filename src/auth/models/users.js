@@ -48,6 +48,7 @@ const userSchema = (sequelize, DataTypes) => {
     } catch (e) {
       throw new Error(e.message);
     }
+    
   };
 
   return model;
