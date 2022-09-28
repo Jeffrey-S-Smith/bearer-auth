@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+
 const authRouter = express.Router();
 
 const basicAuth = require('../middleware/basic.js');
