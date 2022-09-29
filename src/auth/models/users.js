@@ -15,12 +15,12 @@ const userSchema = (sequelize, DataTypes) => {
         return jwt.sign({ username: this.username },  SECRET);
       }, 
       set(payload) {
-      return jwt.sign(payload, API_SECRET)
+      return jwt.sign(payload, SECRET)
       },
     },
   });
 
-  model.beforeCreate(async (user) => {
+  model.beforeCreate(async (user, options) => {
     let hashedPass = await bcrypt.hash(user.password, 10);
     user.password = hashedPass;
   });
@@ -31,10 +31,10 @@ const userSchema = (sequelize, DataTypes) => {
     const user = await this.findOne({ where: { username : username }});
     const valid = await bcrypt.compare(password, user.password);
     if (valid) { return user; }
-    throw new Error('Invalid User');
+    
   }
     catch (e) {
-  throw new Error(e.message);
+      throw new Error('Invalid User');
 }
   }
 
