@@ -4,6 +4,7 @@ process.env.SECRET = "TEST_SECRET";
 
 const { db } = require('../../../../src/auth/models');
 const supertest = require('supertest');
+const { literal } = require('sequelize');
 const server = require('../../../../src/server.js').server;
 
 const mockRequest = supertest(server);
@@ -118,4 +119,4 @@ describe('Auth Router', () => {
     expect(response.status).toBe(403);
     expect(response.text).toEqual("Invalid Login");
   });
-});
+});literal
